@@ -1,3 +1,15 @@
+/**
+ * Landing — the public-facing homepage.
+ *
+ * A purely presentational page: animated hero section, floating artwork,
+ * and a slide-in navigation overlay.  No data fetching.
+ *
+ * Nav overlay links:
+ * - Home (`/`)
+ * - Library (`/library`) — the public song catalogue
+ * - The Chaos (`/chaos`) — lore / easter egg page
+ * - Enter Lab (`/lab`) — the main workspace
+ */
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

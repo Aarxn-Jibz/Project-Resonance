@@ -1,3 +1,48 @@
+/**
+ * Desynth CF Worker — main entry point.
+ *
+ * Handles all API traffic between the React frontend and the Modal ML worker.
+ * Deployed to Cloudflare Workers via `wrangler deploy`.
+ *
+ * Request flow (happy path)
+ * -------------------------
+ * 1. `POST /api/upload`
+ *    - Validates file type and size.
+ *    - SHA-256 hashes the file bytes and checks CF KV for a duplicate.
+ *    - On cache miss: uploads the raw file to R2, writes job metadata to KV,
+ *      fires the Modal `/separate` endpoint (non-blocking via `waitUntil`),
+ *      returns `{job_id}` with HTTP 202.
+ *    - On cache hit: returns the existing D1 row immediately.
+ *
+ * 2. `GET /sse/:jobId`
+ *    - Opens a Server-Sent Events stream.
+ *    - Polls `job:<jobId>:status` in KV every 2 seconds until the value
+ *      becomes "complete" or "error", then closes the stream.
+ *
+ * 3. `POST /webhook/complete`  (called by Modal, not the browser)
+ *    - Authenticated with the shared `WEBHOOK_SECRET`.
+ *    - Fetches each MIDI JSON file from R2, runs `quantize()`, and writes
+ *      the result back to R2 as `*.quantized.json`.
+ *    - Inserts a row into the D1 song library.
+ *    - Writes `hash:<sha256>` → `job_id` in KV (permanent dedup entry).
+ *    - Updates `job:<jobId>:status` to "complete" to unblock SSE subscribers.
+ *
+ * 4. `GET /api/library`    — paginated, searchable song listing from D1.
+ * 5. `GET /api/stems/:jobId` — resolves R2 keys to public URLs for playback.
+ *
+ * CF bindings (configured in wrangler.toml)
+ * ------------------------------------------
+ * - `STEMS_BUCKET`  R2Bucket    — stores FLAC stems, MIDI JSON, quantized JSON
+ * - `DEDUP_KV`      KVNamespace — job status + dedup hash index
+ * - `LIBRARY_DB`    D1Database  — song library (searchable)
+ *
+ * Secrets (set via `wrangler secret put`)
+ * ----------------------------------------
+ * - `ML_WORKER_URL`  — Modal `/separate` endpoint URL
+ * - `WEBHOOK_SECRET` — shared secret; same value must be in Modal secrets
+ * - `R2_PUBLIC_URL`  — public base URL of the R2 bucket (no trailing slash)
+ */
+
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { quantize } from './quantizer.js'
@@ -12,16 +57,18 @@ type Env = {
 }
 
 const ALLOWED_EXTENSIONS = new Set(['.wav', '.mp3'])
-const MAX_FILE_BYTES = 50 * 1024 * 1024
+const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50 MB
 
 const app = new Hono<{ Bindings: Env }>()
 app.use('*', cors())
 
 // ---------------------------------------------------------------------------
-// Upload — hash → dedup check → R2 upload → spawn Modal job
+// POST /api/upload
 // ---------------------------------------------------------------------------
 
 app.post('/api/upload', async (c) => {
+  // Check Content-Length before buffering the body to reject obviously
+  // oversized requests without loading them into Worker memory.
   const contentLength = Number(c.req.header('content-length') ?? 0)
   if (contentLength > MAX_FILE_BYTES) {
     return c.json({ error: 'File too large (max 50MB)' }, 400)
@@ -49,10 +96,13 @@ app.post('/api/upload', async (c) => {
   }
 
   const fileBytes = await file.arrayBuffer()
-  const hashBuffer = await crypto.subtle.digest('SHA-256', fileBytes)
-  const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
 
-  // Dedup check
+  // SHA-256 dedup — same file bytes → same hash → same job result
+  const hashBuffer = await crypto.subtle.digest('SHA-256', fileBytes)
+  const hash = Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+
   const existingJobId = await c.env.DEDUP_KV.get(`hash:${hash}`)
   if (existingJobId) {
     const row = await c.env.LIBRARY_DB.prepare(
@@ -64,19 +114,20 @@ app.post('/api/upload', async (c) => {
   }
 
   const jobId = crypto.randomUUID()
+  // Strip path separators from the filename before storing it — the name is
+  // used in search results and could otherwise be used for log injection.
   const safeFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200)
 
-  // Store upload in R2 for Modal to pick up
   await c.env.STEMS_BUCKET.put(`uploads/${jobId}${ext}`, fileBytes)
 
-  // Track job status in KV — TTL 1 hour
+  // TTL 1 hour: if Modal never calls back, these ephemeral keys expire cleanly
   await c.env.DEDUP_KV.put(`job:${jobId}:status`, 'processing', { expirationTtl: 3600 })
   await c.env.DEDUP_KV.put(`job:${jobId}:filename`, safeFilename, { expirationTtl: 3600 })
   await c.env.DEDUP_KV.put(`job:${jobId}:hash`, hash, { expirationTtl: 3600 })
 
-  // Dispatch to ML worker.
-  // In production (Modal): send job_id + ext, Modal downloads file from R2.
-  // In local dev: send file bytes directly since Miniflare R2 isn't an HTTP server.
+  // Dispatch ML job without blocking the HTTP response.
+  // Local dev sends file bytes directly; production sends job_id so Modal
+  // downloads from R2 (avoids double-transfer of large audio files).
   const isLocalDev = c.env.ML_WORKER_URL.includes('localhost') || c.env.ML_WORKER_URL.includes('127.0.0.1')
 
   c.executionCtx.waitUntil(
@@ -110,13 +161,17 @@ app.post('/api/upload', async (c) => {
 })
 
 // ---------------------------------------------------------------------------
-// SSE — streams job status to frontend
+// GET /sse/:jobId
 // ---------------------------------------------------------------------------
 
 app.get('/sse/:jobId', async (c) => {
   const jobId = c.req.param('jobId')
   const encoder = new TextEncoder()
 
+  // ReadableStream drives the SSE response body.  The inner loop polls KV
+  // every 2 seconds; on "complete" or "error" it sends a final event and
+  // closes.  Using a loop instead of recursion avoids unbounded stack growth
+  // for very long-running jobs.
   const stream = new ReadableStream({
     async start(controller) {
       const send = (data: Record<string, unknown>) => {
@@ -137,7 +192,6 @@ app.get('/sse/:jobId', async (c) => {
           break
         }
 
-        // Poll every 2 seconds until done
         await new Promise<void>(resolve => setTimeout(resolve, 2000))
       }
 
@@ -155,7 +209,7 @@ app.get('/sse/:jobId', async (c) => {
 })
 
 // ---------------------------------------------------------------------------
-// Webhook — Modal calls this when processing is complete
+// POST /webhook/complete
 // ---------------------------------------------------------------------------
 
 app.post('/webhook/complete', async (c) => {
@@ -189,7 +243,8 @@ app.post('/webhook/complete', async (c) => {
   const stems = body.stems ?? {}
   const midiPaths = body.midi_json ?? {}
 
-  // Fetch, quantize, and re-upload each MIDI JSON
+  // Quantize each MIDI JSON: fetch raw from R2, snap to grid, write back as
+  // *.quantized.json so the frontend always gets grid-aligned note data.
   const quantizedMidi: Record<string, string> = {}
   for (const [stem, r2Key] of Object.entries(midiPaths)) {
     try {
@@ -208,7 +263,6 @@ app.post('/webhook/complete', async (c) => {
   const filename = (await c.env.DEDUP_KV.get(`job:${jobId}:filename`)) ?? 'unknown'
   const hash = (await c.env.DEDUP_KV.get(`job:${jobId}:hash`)) ?? ''
 
-  // Insert into D1 song library
   await c.env.LIBRARY_DB.prepare(`
     INSERT OR REPLACE INTO songs
       (job_id, filename, input_hash, timestamp,
@@ -217,35 +271,25 @@ app.post('/webhook/complete', async (c) => {
        has_midi_vocals, has_midi_bass, has_midi_piano)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
-    jobId,
-    filename,
-    hash,
-    Date.now(),
-    stems.vocals ?? null,
-    stems.drums ?? null,
-    stems.bass ?? null,
-    stems.guitar ?? null,
-    stems.piano ?? null,
-    stems.other ?? null,
-    quantizedMidi.vocals ?? null,
-    quantizedMidi.bass ?? null,
-    quantizedMidi.piano ?? null,
+    jobId, filename, hash, Date.now(),
+    stems.vocals ?? null, stems.drums ?? null, stems.bass ?? null,
+    stems.guitar ?? null, stems.piano ?? null, stems.other ?? null,
+    quantizedMidi.vocals ?? null, quantizedMidi.bass ?? null, quantizedMidi.piano ?? null,
     quantizedMidi.vocals ? 1 : 0,
     quantizedMidi.bass ? 1 : 0,
     quantizedMidi.piano ? 1 : 0,
   ).run()
 
-  // Persist dedup hash → job mapping (permanent, no TTL)
+  // Permanent dedup entry — no TTL so re-uploads of the same file are always
+  // served from the library without reprocessing
   await c.env.DEDUP_KV.put(`hash:${hash}`, jobId)
-
-  // Mark job complete for SSE subscribers
   await c.env.DEDUP_KV.put(`job:${jobId}:status`, 'complete', { expirationTtl: 3600 })
 
   return c.json({ ok: true })
 })
 
 // ---------------------------------------------------------------------------
-// Library — public song listing with optional search
+// GET /api/library
 // ---------------------------------------------------------------------------
 
 app.get('/api/library', async (c) => {
@@ -265,7 +309,7 @@ app.get('/api/library', async (c) => {
 })
 
 // ---------------------------------------------------------------------------
-// Stems — return public R2 URLs for a completed job
+// GET /api/stems/:jobId
 // ---------------------------------------------------------------------------
 
 app.get('/api/stems/:jobId', async (c) => {
@@ -278,6 +322,8 @@ app.get('/api/stems/:jobId', async (c) => {
     return c.json({ error: 'Job not found' }, 404)
   }
 
+  // Convert R2 keys (relative paths) to full public URLs for the frontend.
+  // The bucket is public, so no presigning is required.
   const base = c.env.R2_PUBLIC_URL.replace(/\/+$/, '')
   const toUrl = (key: string | null | undefined) =>
     key ? `${base}/${key}` : null
@@ -286,21 +332,21 @@ app.get('/api/stems/:jobId', async (c) => {
     job_id: jobId,
     stems: {
       vocals: toUrl(row.stem_vocals as string | null),
-      drums: toUrl(row.stem_drums as string | null),
-      bass: toUrl(row.stem_bass as string | null),
+      drums:  toUrl(row.stem_drums  as string | null),
+      bass:   toUrl(row.stem_bass   as string | null),
       guitar: toUrl(row.stem_guitar as string | null),
-      piano: toUrl(row.stem_piano as string | null),
-      other: toUrl(row.stem_other as string | null),
+      piano:  toUrl(row.stem_piano  as string | null),
+      other:  toUrl(row.stem_other  as string | null),
     },
     midi: {
       vocals: toUrl(row.midi_vocals as string | null),
-      bass: toUrl(row.midi_bass as string | null),
-      piano: toUrl(row.midi_piano as string | null),
+      bass:   toUrl(row.midi_bass   as string | null),
+      piano:  toUrl(row.midi_piano  as string | null),
     },
     has_midi: {
       vocals: !!row.has_midi_vocals,
-      bass: !!row.has_midi_bass,
-      piano: !!row.has_midi_piano,
+      bass:   !!row.has_midi_bass,
+      piano:  !!row.has_midi_piano,
     },
   })
 })

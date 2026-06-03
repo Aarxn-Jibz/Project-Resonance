@@ -1,3 +1,19 @@
+/**
+ * Library — public song catalogue.
+ *
+ * Displays every song that has been processed by the ML pipeline, sourced
+ * from the D1 `songs` table via `GET /api/library`.  The list is visible
+ * to all users (no auth) and grows automatically as new songs are processed.
+ *
+ * Features
+ * --------
+ * - Debounced search (300 ms) filters by filename via the `?search=` query param.
+ * - Each row shows MIDI availability badges (VOC / BASS / PIANO) so users
+ *   know before opening a song whether sheet music is available.
+ * - Clicking a row calls `GET /api/stems/:jobId` and navigates to `/lab`
+ *   with the stem and MIDI data pre-populated in `location.state`, skipping
+ *   the upload step.
+ */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';

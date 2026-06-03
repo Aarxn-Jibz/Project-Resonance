@@ -1,3 +1,35 @@
+/**
+ * SheetMusicModal — renders quantized MIDI data as ABC notation sheet music.
+ *
+ * Converts the `{ bpm, notes }` JSON produced by the CF Worker quantizer
+ * into an ABC notation string, then hands it to `abcjs` for SVG rendering.
+ *
+ * ABC conversion notes
+ * --------------------
+ * - Time signature is assumed to be 4/4; the unit note length is 1/16.
+ * - Bar lines are inserted by accumulating sixteenth-note units and
+ *   inserting a `|` every 16 units (= one 4/4 bar), rather than by note
+ *   count — the earlier index-based approach produced wrong bar lengths
+ *   for variable-duration notes.
+ * - Rests are synthesised from the gap between `currentTime` and the next
+ *   note's `startTime` (with a 50 ms float-rounding tolerance).
+ * - Pitches outside MIDI 21–108 (piano range) are rendered as rests.
+ * - Bass clef is declared as `K:C clef=bass` (not `K:C bass`, which is
+ *   invalid ABC syntax and caused abcjs to fall back to treble clef).
+ *
+ * Downloads
+ * ---------
+ * - "SVG VECTOR" serialises the abcjs-generated SVG DOM node to a file.
+ * - "RAW DATA" downloads the original `midiData` object as JSON.
+ *
+ * @param {object}       props
+ * @param {boolean}      props.isOpen    - Whether the modal is visible.
+ * @param {Function}     props.onClose   - Called when the backdrop or × is clicked.
+ * @param {string|null}  props.stemName  - Stem identifier used in the title
+ *   and to select treble vs bass clef (`"bass"` → bass clef).
+ * @param {object|null}  props.midiData  - Quantized MIDI object
+ *   `{ bpm: number, notes: Array<{pitch, startTime, duration}> }`.
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, FileAudio } from 'lucide-react';

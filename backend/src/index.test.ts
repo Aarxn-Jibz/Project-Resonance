@@ -1,3 +1,15 @@
+/**
+ * Integration tests for the CF Worker (index.ts).
+ *
+ * Uses `@cloudflare/vitest-pool-workers` to run the Worker in a real
+ * Miniflare environment with in-memory KV, R2, and D1 bindings — no live
+ * Cloudflare account is required.
+ *
+ * Binding values (ML_WORKER_URL, WEBHOOK_SECRET, R2_PUBLIC_URL) are set in
+ * `vitest.config.ts` under `miniflare.bindings`.
+ *
+ * Run: `npx vitest run` from the `backend/` directory.
+ */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloudflare:test'
 

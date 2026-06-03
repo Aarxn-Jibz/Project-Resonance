@@ -1,3 +1,25 @@
+/**
+ * StemPlayer — 6-channel synchronised stem mixer.
+ *
+ * Renders one `<audio>` element per stem (hidden) and drives them together
+ * via a shared play/pause button.  Individual volume sliders and mute
+ * toggles work per-channel without affecting the others.
+ *
+ * "Play Original" reconstructs the full mix by playing all 6 stems at full
+ * volume simultaneously.  An `AudioContext` is used to minimise drift
+ * between the channel start times.
+ *
+ * Sheet music buttons are only shown for stems that have corresponding MIDI
+ * data (`midiData[stem.id]` is truthy) — currently vocals, bass, piano.
+ *
+ * @param {object}        props
+ * @param {object|null}   [props.audioSource] - Map of stem id → public R2 URL.
+ *   e.g. `{ vocals: "https://…/vocals.flac", drums: "…", … }`.
+ * @param {object|null}   [props.midiData]    - Map of stem id → quantized MIDI
+ *   JSON object `{ bpm, notes }`, or `null` if no MIDI is available.
+ * @param {Function}      [props.onOpenSheet] - Called with the stem id string
+ *   when the sheet music button is clicked.
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Download, AudioWaveform, FileText } from 'lucide-react';
 

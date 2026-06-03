@@ -1,3 +1,11 @@
+/**
+ * Unit tests for quantizer.ts.
+ *
+ * All tests are pure (no I/O, no CF bindings) and run with the standard
+ * Vitest runner: `bun test` or `npx vitest run`.
+ *
+ * Sixteenth note duration at BPM 120 used throughout: 60/120/4 = 0.125 s.
+ */
 import { describe, it, expect } from 'vitest'
 import { quantize } from './quantizer.js'
 

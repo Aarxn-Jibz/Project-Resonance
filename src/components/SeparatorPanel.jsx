@@ -1,3 +1,20 @@
+/**
+ * SeparatorPanel — upload form and job-progress log.
+ *
+ * Drives the full async upload lifecycle:
+ *   idle → processing (upload + SSE stream) → complete | error
+ *
+ * State is lifted to `Lab.jsx` via `onStateChange` and `onFileSelect`
+ * so the parent can coordinate the layout transition and pass stem/MIDI
+ * data down to `TimbreDesign` / `StemPlayer`.
+ *
+ * @param {object}   props
+ * @param {Function} [props.onStateChange]  - Called with the new engine state string.
+ * @param {Function} [props.onProgressChange] - Reserved; currently unused.
+ * @param {Function} [props.onFileSelect]   - Called with `(stems, midi)` when
+ *   a job completes.  `stems` is `{vocals, drums, bass, guitar, piano, other}`
+ *   (public R2 URLs).  `midi` is `{vocals, bass, piano}` (quantized JSON URLs).
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Square, Loader2, Music, Mic2, Cpu, Activity, Speaker } from 'lucide-react';

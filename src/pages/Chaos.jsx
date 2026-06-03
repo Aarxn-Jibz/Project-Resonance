@@ -1,3 +1,11 @@
+/**
+ * Chaos — the in-universe error / lore page.
+ *
+ * A purely decorative page that serves as the project's "easter egg" and
+ * narrative backdrop.  Reachable from the Landing nav overlay at `/chaos`.
+ * Contains no API calls or interactive state — everything is static markup
+ * and CSS animations that simulate a terminal log and system override state.
+ */
 import React from 'react';
 import { AlertTriangle, Zap, Activity, Terminal, Cpu, Radio, Fingerprint } from 'lucide-react';
 
