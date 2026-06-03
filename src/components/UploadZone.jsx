@@ -1,3 +1,20 @@
+/**
+ * UploadZone — drag-and-drop audio upload widget (unused / legacy).
+ *
+ * This component was part of the original hackathon prototype.  It has been
+ * superseded by `SeparatorPanel`, which handles the full upload lifecycle
+ * including SSE status streaming and the 6-stem result display.
+ *
+ * The `onDrop` handler currently fakes a 3-second network delay and never
+ * actually calls the backend — the real fetch call is commented out.  Do
+ * not use this component in new code.
+ *
+ * @param {object}   props
+ * @param {Function} [props.onUploadSuccess] - Called after the (simulated)
+ *   upload completes.
+ *
+ * @deprecated Use `SeparatorPanel` instead.
+ */
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, AudioLines, Loader2 } from 'lucide-react';

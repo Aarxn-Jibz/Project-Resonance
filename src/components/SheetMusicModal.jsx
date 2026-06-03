@@ -1,3 +1,35 @@
+/**
+ * SheetMusicModal — renders quantized MIDI data as ABC notation sheet music.
+ *
+ * Converts the `{ bpm, notes }` JSON produced by the CF Worker quantizer
+ * into an ABC notation string, then hands it to `abcjs` for SVG rendering.
+ *
+ * ABC conversion notes
+ * --------------------
+ * - Time signature is assumed to be 4/4; the unit note length is 1/16.
+ * - Bar lines are inserted by accumulating sixteenth-note units and
+ *   inserting a `|` every 16 units (= one 4/4 bar), rather than by note
+ *   count — the earlier index-based approach produced wrong bar lengths
+ *   for variable-duration notes.
+ * - Rests are synthesised from the gap between `currentTime` and the next
+ *   note's `startTime` (with a 50 ms float-rounding tolerance).
+ * - Pitches outside MIDI 21–108 (piano range) are rendered as rests.
+ * - Bass clef is declared as `K:C clef=bass` (not `K:C bass`, which is
+ *   invalid ABC syntax and caused abcjs to fall back to treble clef).
+ *
+ * Downloads
+ * ---------
+ * - "SVG VECTOR" serialises the abcjs-generated SVG DOM node to a file.
+ * - "RAW DATA" downloads the original `midiData` object as JSON.
+ *
+ * @param {object}       props
+ * @param {boolean}      props.isOpen    - Whether the modal is visible.
+ * @param {Function}     props.onClose   - Called when the backdrop or × is clicked.
+ * @param {string|null}  props.stemName  - Stem identifier used in the title
+ *   and to select treble vs bass clef (`"bass"` → bass clef).
+ * @param {object|null}  props.midiData  - Quantized MIDI object
+ *   `{ bpm: number, notes: Array<{pitch, startTime, duration}> }`.
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, FileAudio } from 'lucide-react';
@@ -25,67 +57,69 @@ function rawMidiToABC(midiData, stemName) {
     abcString += `M:4/4\n`; // Assuming 4/4 sync
     abcString += `L:1/16\n`; // Assuming 16th note grid from Go
     abcString += `Q:1/4=${Math.round(midiData.bpm || 120)}\n`;
-    abcString += `K:C${stemName.toLowerCase() === 'bass' ? ' bass' : ''}\n`;
+    abcString += `K:C${stemName.toLowerCase() === 'bass' ? ' clef=bass' : ''}\n`;
 
     let notesString = "";
     let currentTime = 0;
+    let beatAccumulator = 0; // tracks sixteenth-note units within the current bar
 
-    // Assume Go quantized everything strictly to the 1/16 grid
     // Sixteenth note duration in seconds
     const sixteenth = (60.0 / (midiData.bpm || 120)) / 4.0;
 
-    midiData.notes.forEach((note, index) => {
+    // Emit `token` (e.g. "z" or "A") repeated across bar boundaries.
+    // Rests spanning multiple bars are split into per-bar chunks so the ABC
+    // bar-line tokens appear at the correct positions.  Notes are tied across
+    // bar lines with "-".
+    const emitToken = (token, units, isRest) => {
+        let rem = units;
+        while (rem > 0) {
+            const space = 16 - beatAccumulator;
+            const chunk = Math.min(rem, space);
+            notesString += `${token}${chunk}`;
+            rem -= chunk;
+            beatAccumulator += chunk;
+            if (beatAccumulator >= 16) {
+                if (!isRest && rem > 0) notesString += "-"; // tie note across bar
+                notesString += " | ";
+                beatAccumulator = 0;
+            } else {
+                notesString += " ";
+            }
+        }
+    };
+
+    midiData.notes.forEach((note) => {
         // 1. Calculate RESTS (if note startTime > currentTime)
-        // We hack this simply for the visual
-        if (note.startTime > currentTime + 0.05) { // 50ms tolerance
+        if (note.startTime > currentTime + 0.05) { // 50ms tolerance for float rounding
             const restDurationSec = note.startTime - currentTime;
             const restSixteenths = Math.max(1, Math.round(restDurationSec / sixteenth));
-            notesString += `z${restSixteenths} `;
+            emitToken("z", restSixteenths, true);
         }
 
         // 2. Map PITCH
+        let durationSixteenths;
         if (typeof note.pitch !== 'number' || isNaN(note.pitch) || note.pitch < 21 || note.pitch > 108) {
-            // If the AI hallucinates a non-musical frequency, draw it as a rest
-            const durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
-            notesString += `z${durationSixteenths} `;
+            // Non-musical pitch — render as rest
+            durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
+            emitToken("z", durationSixteenths, true);
         } else {
             const pitchClass = note.pitch % 12;
-            const octave = Math.floor(note.pitch / 12) - 1; // Middle C (MIDI 60) is Octave 4
+            const octave = Math.floor(note.pitch / 12) - 1; // Middle C (MIDI 60) = octave 4
 
             let abcNote = "";
             if (octave >= 5) {
-                // Octave 5 and above uses lowercase c, d, e...
                 abcNote = pitchClassLower[pitchClass];
-                // c is C5. c' is C6. c'' is C7.
-                for (let i = 5; i < octave; i++) {
-                    abcNote += "'";
-                }
+                for (let i = 5; i < octave; i++) abcNote += "'";
             } else if (octave === 4) {
-                // Octave 4 uses uppercase C, D, E...
                 abcNote = pitchClassUpper[pitchClass];
             } else {
-                // Octave 3 and below uses uppercase with commas
                 abcNote = pitchClassUpper[pitchClass];
-                // C, is C3. C,, is C2.
-                for (let i = octave; i < 4; i++) {
-                    abcNote += ",";
-                }
+                for (let i = octave; i < 4; i++) abcNote += ",";
             }
 
             // 3. Map DURATION
-            const durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
-            notesString += `${abcNote}${durationSixteenths} `;
-        }
-
-        // 4. Fake Bar lines every 16 sixteenths (lazy hackathon math)
-        // Hard-wrap the staff every 4 bars (64 sixteenths)
-        if (index > 0 && index % 8 === 0) {
-            // If it's the 4th bar, inject a physical newline so ABCJS draws a new staff below
-            if (index % 32 === 0) {
-                notesString += "|\n";
-            } else {
-                notesString += "| ";
-            }
+            durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
+            emitToken(abcNote, durationSixteenths, false);
         }
 
         currentTime = note.startTime + note.duration;

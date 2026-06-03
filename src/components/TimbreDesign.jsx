@@ -1,3 +1,35 @@
+/**
+ * TimbreDesign — the animated visualiser and stem player container.
+ *
+ * Renders in two modes controlled by `engineState`:
+ *
+ * **idle / processing** — shows the rotating sphere with three draggable
+ * floating nodes (Vocals, Drums, Bass) and a telemetry readout panel.
+ * Dragging a node over the sphere core changes the sphere's glow colour.
+ * The copy section below the sphere shows marketing/lore text.
+ *
+ * **complete** — the copy section is replaced by a `StemPlayer` (the
+ * 6-channel stem mixer), and the sphere transitions to a green "isolation
+ * active" state.  A hidden `<audio>` element wired to `audioSource` drives
+ * the sphere's built-in play/pause control (plays the first stem or a
+ * combined file; separate from the individual channel mixer).
+ *
+ * The telemetry values (GLOW_INTENSITY) fluctuate on a timer to give the
+ * impression of live signal monitoring — they are decorative and not wired
+ * to real audio analysis.
+ *
+ * @param {object}      props
+ * @param {string}      [props.engineState='idle'] - One of `'idle'`,
+ *   `'processing'`, `'complete'`, `'error'`.
+ * @param {number}      [props.engineProgress=0]   - Reserved; not currently
+ *   used for a visual progress indicator.
+ * @param {object|null} [props.audioSource]         - Stem URL map passed
+ *   directly to `StemPlayer`.
+ * @param {object|null} [props.midiData]            - Quantized MIDI map
+ *   passed to `StemPlayer`.
+ * @param {Function}    [props.onOpenSheet]         - Forwarded to `StemPlayer`
+ *   for the sheet music button callback.
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Music, Square, Layers, Play } from 'lucide-react'; // Added Play

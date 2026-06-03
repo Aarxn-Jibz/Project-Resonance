@@ -1,0 +1,27 @@
+name = "desynth-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "STEMS_BUCKET"
+bucket_name = "desynth-stems"
+
+[[kv_namespaces]]
+binding = "DEDUP_KV"
+id = "00000000000000000000000000000001"          # replace with real ID before deploying
+preview_id = "00000000000000000000000000000001"
+
+[[d1_databases]]
+binding = "LIBRARY_DB"
+database_name = "desynth-library"
+database_id = "00000000-0000-0000-0000-000000000001" # replace with real ID before deploying
+
+[vars]
+# Set real values via: wrangler secret put ML_WORKER_URL
+# ML_WORKER_URL = "https://your-modal-app--desynth-ml-separate.modal.run"
+# WEBHOOK_SECRET = "generate-a-strong-random-secret"
+# R2_PUBLIC_URL = "https://pub-XXXX.r2.dev"
+
+[dev]
+port = 8787
