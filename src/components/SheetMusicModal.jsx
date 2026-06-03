@@ -66,13 +66,34 @@ function rawMidiToABC(midiData, stemName) {
     // Sixteenth note duration in seconds
     const sixteenth = (60.0 / (midiData.bpm || 120)) / 4.0;
 
+    // Emit `token` (e.g. "z" or "A") repeated across bar boundaries.
+    // Rests spanning multiple bars are split into per-bar chunks so the ABC
+    // bar-line tokens appear at the correct positions.  Notes are tied across
+    // bar lines with "-".
+    const emitToken = (token, units, isRest) => {
+        let rem = units;
+        while (rem > 0) {
+            const space = 16 - beatAccumulator;
+            const chunk = Math.min(rem, space);
+            notesString += `${token}${chunk}`;
+            rem -= chunk;
+            beatAccumulator += chunk;
+            if (beatAccumulator >= 16) {
+                if (!isRest && rem > 0) notesString += "-"; // tie note across bar
+                notesString += " | ";
+                beatAccumulator = 0;
+            } else {
+                notesString += " ";
+            }
+        }
+    };
+
     midiData.notes.forEach((note) => {
         // 1. Calculate RESTS (if note startTime > currentTime)
         if (note.startTime > currentTime + 0.05) { // 50ms tolerance for float rounding
             const restDurationSec = note.startTime - currentTime;
             const restSixteenths = Math.max(1, Math.round(restDurationSec / sixteenth));
-            notesString += `z${restSixteenths} `;
-            beatAccumulator += restSixteenths;
+            emitToken("z", restSixteenths, true);
         }
 
         // 2. Map PITCH
@@ -80,7 +101,7 @@ function rawMidiToABC(midiData, stemName) {
         if (typeof note.pitch !== 'number' || isNaN(note.pitch) || note.pitch < 21 || note.pitch > 108) {
             // Non-musical pitch — render as rest
             durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
-            notesString += `z${durationSixteenths} `;
+            emitToken("z", durationSixteenths, true);
         } else {
             const pitchClass = note.pitch % 12;
             const octave = Math.floor(note.pitch / 12) - 1; // Middle C (MIDI 60) = octave 4
@@ -98,14 +119,7 @@ function rawMidiToABC(midiData, stemName) {
 
             // 3. Map DURATION
             durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
-            notesString += `${abcNote}${durationSixteenths} `;
-        }
-
-        // 4. Bar lines — insert when accumulated beat count reaches one full 4/4 bar (16 sixteenths)
-        beatAccumulator += durationSixteenths;
-        if (beatAccumulator >= 16) {
-            notesString += "| ";
-            beatAccumulator -= 16;
+            emitToken(abcNote, durationSixteenths, false);
         }
 
         currentTime = note.startTime + note.duration;

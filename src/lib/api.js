@@ -16,7 +16,7 @@ const BASE = import.meta.env.VITE_API_URL ?? ''
  * @returns {Promise<{job_id: string, cached: boolean, result?: object}>}
  *   `cached: true` means the file was already processed; `result` contains
  *   the existing D1 row.  `cached: false` means a new job was dispatched and
- *   `job_id` should be passed to `connectSSE` to stream progress.
+ *   `job_id` should be passed to `pollStatus` to track progress.
  * @throws {Error} On HTTP errors or non-JSON responses.
  */
 export async function uploadAudio(file) {
@@ -31,30 +31,46 @@ export async function uploadAudio(file) {
 }
 
 /**
- * Open a Server-Sent Events connection to stream job status updates.
+ * Poll the CF Worker for job status until the job completes or errors.
  *
- * Fires `onEvent` for every SSE message.  The stream closes automatically
- * once the status becomes `"complete"` or `"error"`.
+ * Calls `onEvent` immediately and then every `intervalMs` milliseconds.
+ * Stops automatically once the status is `"complete"` or `"error"`, or when
+ * the returned cleanup function is called.
  *
- * @param {string}   jobId   - Job UUID returned by `uploadAudio`.
- * @param {Function} onEvent - Called with `{ status: string, message?: string }`.
- * @returns {Function} A cleanup function that closes the EventSource.
- *   Call it when the component unmounts to avoid dangling connections.
+ * Polling keeps each request short-lived so the CF free-tier CPU limit is
+ * never a concern (unlike a long-lived SSE stream that blocks a Worker
+ * invocation for the duration of the job).
+ *
+ * @param {string}   jobId       - Job UUID returned by `uploadAudio`.
+ * @param {Function} onEvent     - Called with `{ status: string, message?: string }`.
+ * @param {number}   [intervalMs=2500] - Milliseconds between polls.
+ * @returns {Function} Cleanup function — call on component unmount.
  */
-export function connectSSE(jobId, onEvent) {
-  const source = new EventSource(`${BASE}/sse/${jobId}`)
-  source.onmessage = (e) => {
+export function pollStatus(jobId, onEvent, intervalMs = 2500) {
+  let active = true
+  let timer = null
+
+  async function tick() {
+    if (!active) return
     try {
-      onEvent(JSON.parse(e.data))
-    } catch {
-      onEvent({ status: 'error', message: 'Malformed SSE event' })
+      const res = await fetch(`${BASE}/api/status/${jobId}`)
+      const data = await res.json().catch(() => ({ status: 'error', message: `Unexpected response (${res.status})` }))
+      if (!active) return
+      onEvent(data)
+      if (data.status !== 'complete' && data.status !== 'error') {
+        timer = setTimeout(tick, intervalMs)
+      }
+    } catch (err) {
+      if (active) onEvent({ status: 'error', message: err.message })
     }
   }
-  source.onerror = () => {
-    onEvent({ status: 'error', message: 'SSE connection lost' })
-    source.close()
+
+  tick()
+
+  return () => {
+    active = false
+    if (timer) clearTimeout(timer)
   }
-  return () => source.close()
 }
 
 /**

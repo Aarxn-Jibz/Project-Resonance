@@ -38,6 +38,8 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
     STEM_CONFIGS.reduce((acc, s) => ({ ...acc, [s.id]: 0.8 }), {})
   );
   const audioRefs = useRef({});
+  const audioContextRef = useRef(null);
+  const audioSourcesRef = useRef({});
 
   // Keep audio element volumes in sync with state
   useEffect(() => {
@@ -56,22 +58,27 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
   };
 
   const playOriginal = () => {
-    // Reset all volumes to full, then play all simultaneously
     const fullVolumes = STEM_CONFIGS.reduce((acc, s) => ({ ...acc, [s.id]: 1.0 }), {});
     setVolumes(fullVolumes);
     setIsPlaying(true);
-    // Synchronise start time via AudioContext to minimise drift
     try {
-      const ctx = new AudioContext();
-      const startAt = ctx.currentTime + 0.05;
-      Object.entries(audioRefs.current).forEach(([, el]) => {
+      // Reuse the existing AudioContext — creating a new one each call would
+      // leave the old one open and calling createMediaElementSource on an
+      // element already connected to any AudioContext throws InvalidStateError.
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext();
+      }
+      const ctx = audioContextRef.current;
+      Object.entries(audioRefs.current).forEach(([id, el]) => {
         if (!el) return;
+        if (!audioSourcesRef.current[id]) {
+          const source = ctx.createMediaElementSource(el);
+          source.connect(ctx.destination);
+          audioSourcesRef.current[id] = source;
+        }
         el.currentTime = 0;
-        const source = ctx.createMediaElementSource(el);
-        source.connect(ctx.destination);
         el.play().catch(() => {});
       });
-      void startAt; // AudioContext aligns clocks; individual play() calls are close enough
     } catch {
       Object.values(audioRefs.current).forEach(el => {
         if (!el) return;

@@ -14,10 +14,10 @@
  *      returns `{job_id}` with HTTP 202.
  *    - On cache hit: returns the existing D1 row immediately.
  *
- * 2. `GET /sse/:jobId`
- *    - Opens a Server-Sent Events stream.
- *    - Polls `job:<jobId>:status` in KV every 2 seconds until the value
- *      becomes "complete" or "error", then closes the stream.
+ * 2. `GET /api/status/:jobId`
+ *    - Returns the current job status from KV as `{ status }`.
+ *    - The frontend polls this endpoint every ~2.5 seconds; keeping each
+ *      request short-lived avoids the CF free-tier CPU time limit.
  *
  * 3. `POST /webhook/complete`  (called by Modal, not the browser)
  *    - Authenticated with the shared `WEBHOOK_SECRET`.
@@ -128,7 +128,8 @@ app.post('/api/upload', async (c) => {
   // Dispatch ML job without blocking the HTTP response.
   // Local dev sends file bytes directly; production sends job_id so Modal
   // downloads from R2 (avoids double-transfer of large audio files).
-  const isLocalDev = c.env.ML_WORKER_URL.includes('localhost') || c.env.ML_WORKER_URL.includes('127.0.0.1')
+  const mlUrl = c.env.ML_WORKER_URL ?? ''
+  const isLocalDev = mlUrl.includes('localhost') || mlUrl.includes('127.0.0.1')
 
   c.executionCtx.waitUntil(
     (async () => {
@@ -150,7 +151,7 @@ app.post('/api/upload', async (c) => {
           }
         }
 
-        await fetch(c.env.ML_WORKER_URL, { method: 'POST', headers: mlHeaders, body: mlBody })
+        await fetch(mlUrl, { method: 'POST', headers: mlHeaders, body: mlBody })
       } catch (err: unknown) {
         console.error('Failed to dispatch ML job:', (err as Error).message)
       }
@@ -161,51 +162,16 @@ app.post('/api/upload', async (c) => {
 })
 
 // ---------------------------------------------------------------------------
-// GET /sse/:jobId
+// GET /api/status/:jobId
 // ---------------------------------------------------------------------------
 
-app.get('/sse/:jobId', async (c) => {
+app.get('/api/status/:jobId', async (c) => {
   const jobId = c.req.param('jobId')
-  const encoder = new TextEncoder()
-
-  // ReadableStream drives the SSE response body.  The inner loop polls KV
-  // every 2 seconds; on "complete" or "error" it sends a final event and
-  // closes.  Using a loop instead of recursion avoids unbounded stack growth
-  // for very long-running jobs.
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (data: Record<string, unknown>) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-      }
-
-      while (true) {
-        const status = await c.env.DEDUP_KV.get(`job:${jobId}:status`)
-
-        if (!status) {
-          send({ status: 'error', message: 'Job not found' })
-          break
-        }
-
-        send({ status })
-
-        if (status === 'complete' || status === 'error') {
-          break
-        }
-
-        await new Promise<void>(resolve => setTimeout(resolve, 2000))
-      }
-
-      controller.close()
-    },
-  })
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
-  })
+  const status = await c.env.DEDUP_KV.get(`job:${jobId}:status`)
+  if (!status) {
+    return c.json({ status: 'error', message: 'Job not found' }, 404)
+  }
+  return c.json({ status })
 })
 
 // ---------------------------------------------------------------------------
@@ -236,7 +202,7 @@ app.post('/webhook/complete', async (c) => {
   const { job_id: jobId, status } = body
 
   if (status === 'error') {
-    await c.env.DEDUP_KV.put(`job:${jobId}:status`, 'error', { expirationTtl: 3600 })
+    await c.env.DEDUP_KV.put(`job:${jobId}:status`, 'error', { expirationTtl: 604800 })
     return c.json({ ok: true })
   }
 
@@ -252,7 +218,7 @@ app.post('/webhook/complete', async (c) => {
       if (!obj) continue
       const raw = await obj.text()
       const quantized = quantize(raw)
-      const quantizedKey = r2Key.replace('.json', '.quantized.json')
+      const quantizedKey = r2Key.replace(/\.json$/, '.quantized.json')
       await c.env.STEMS_BUCKET.put(quantizedKey, JSON.stringify(quantized))
       quantizedMidi[stem] = quantizedKey
     } catch (err: unknown) {
@@ -283,7 +249,9 @@ app.post('/webhook/complete', async (c) => {
   // Permanent dedup entry — no TTL so re-uploads of the same file are always
   // served from the library without reprocessing
   await c.env.DEDUP_KV.put(`hash:${hash}`, jobId)
-  await c.env.DEDUP_KV.put(`job:${jobId}:status`, 'complete', { expirationTtl: 3600 })
+  // 7-day TTL: long enough that any open tab can still poll after a slow job;
+  // the permanent dedup hash means re-uploads hit D1 before this key matters.
+  await c.env.DEDUP_KV.put(`job:${jobId}:status`, 'complete', { expirationTtl: 604800 })
 
   return c.json({ ok: true })
 })

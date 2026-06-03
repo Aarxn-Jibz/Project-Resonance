@@ -13,10 +13,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloudflare:test'
 
-// Apply the D1 migration before tests run
+// Recreate the songs table before each test so rows from one test never
+// bleed into the next (CREATE TABLE IF NOT EXISTS would leave prior rows).
 beforeEach(async () => {
+  await env.LIBRARY_DB.exec(`DROP TABLE IF EXISTS songs`)
   await env.LIBRARY_DB.exec(`
-    CREATE TABLE IF NOT EXISTS songs (
+    CREATE TABLE songs (
       job_id TEXT PRIMARY KEY, filename TEXT NOT NULL, input_hash TEXT NOT NULL UNIQUE,
       timestamp INTEGER NOT NULL,
       stem_vocals TEXT, stem_drums TEXT, stem_bass TEXT, stem_guitar TEXT,

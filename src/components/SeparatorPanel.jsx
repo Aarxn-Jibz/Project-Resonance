@@ -18,7 +18,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Square, Loader2, Music, Mic2, Cpu, Activity, Speaker } from 'lucide-react';
-import { uploadAudio, connectSSE, getStems } from '../lib/api.js';
+import { uploadAudio, pollStatus, getStems } from '../lib/api.js';
 
 export default function SeparatorPanel({ onStateChange, onProgressChange, onFileSelect }) {
   const [file, setFile] = useState(null);
@@ -50,18 +50,26 @@ export default function SeparatorPanel({ onStateChange, onProgressChange, onFile
         return;
       }
 
-      addLog(`[SYS] Job dispatched (${job_id}). Connecting to status stream...`);
+      addLog(`[SYS] Job dispatched (${job_id}). Polling for status...`);
 
-      closeSseRef.current = connectSSE(job_id, async (event) => {
+      closeSseRef.current = pollStatus(job_id, async (event) => {
         if (event.status === 'processing') {
           addLog('[ML] Demucs separation in progress...');
         } else if (event.status === 'complete') {
           closeSseRef.current?.();
           addLog('[SYS] Processing complete. Fetching stems...');
-          await _handleComplete(job_id);
+          try {
+            await _handleComplete(job_id);
+          } catch (err) {
+            addLog(`[ERROR] ${err.message}`);
+            setStatus('error');
+            onStateChange?.('error');
+          }
         } else if (event.status === 'error') {
           closeSseRef.current?.();
-          throw new Error(event.message ?? 'Processing failed');
+          addLog(`[ERROR] ${event.message ?? 'Processing failed'}`);
+          setStatus('error');
+          onStateChange?.('error');
         }
       });
 
