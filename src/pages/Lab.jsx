@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import TimbreDesign from '../components/TimbreDesign';
 import SeparatorPanel from '../components/SeparatorPanel';
 import SheetMusicModal from '../components/SheetMusicModal';
 
 export default function Lab() {
-  const [engineState, setEngineState] = useState('idle');
-  const [progress, setProgress] = useState(0);
-  const [audioURL, setAudioURL] = useState(null);
-  const [midiData, setMidiData] = useState(null); // Added state for MIDI data
+  const location = useLocation();
+  const preloaded = location.state; // set when navigating from Library
 
-  // Modal State lifted to root
+  const [engineState, setEngineState] = useState(preloaded ? 'complete' : 'idle');
+  const [progress, setProgress] = useState(0);
+  const [audioURL, setAudioURL] = useState(preloaded?.stems ?? null);
+  const [midiData, setMidiData] = useState(preloaded?.midi ?? null);
+
   const [activeSheetStem, setActiveSheetStem] = useState(null);
 
   const isDone = engineState === 'complete';

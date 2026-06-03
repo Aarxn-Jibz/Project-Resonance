@@ -25,67 +25,55 @@ function rawMidiToABC(midiData, stemName) {
     abcString += `M:4/4\n`; // Assuming 4/4 sync
     abcString += `L:1/16\n`; // Assuming 16th note grid from Go
     abcString += `Q:1/4=${Math.round(midiData.bpm || 120)}\n`;
-    abcString += `K:C${stemName.toLowerCase() === 'bass' ? ' bass' : ''}\n`;
+    abcString += `K:C${stemName.toLowerCase() === 'bass' ? ' clef=bass' : ''}\n`;
 
     let notesString = "";
     let currentTime = 0;
+    let beatAccumulator = 0; // tracks sixteenth-note units within the current bar
 
-    // Assume Go quantized everything strictly to the 1/16 grid
     // Sixteenth note duration in seconds
     const sixteenth = (60.0 / (midiData.bpm || 120)) / 4.0;
 
-    midiData.notes.forEach((note, index) => {
+    midiData.notes.forEach((note) => {
         // 1. Calculate RESTS (if note startTime > currentTime)
-        // We hack this simply for the visual
-        if (note.startTime > currentTime + 0.05) { // 50ms tolerance
+        if (note.startTime > currentTime + 0.05) { // 50ms tolerance for float rounding
             const restDurationSec = note.startTime - currentTime;
             const restSixteenths = Math.max(1, Math.round(restDurationSec / sixteenth));
             notesString += `z${restSixteenths} `;
+            beatAccumulator += restSixteenths;
         }
 
         // 2. Map PITCH
+        let durationSixteenths;
         if (typeof note.pitch !== 'number' || isNaN(note.pitch) || note.pitch < 21 || note.pitch > 108) {
-            // If the AI hallucinates a non-musical frequency, draw it as a rest
-            const durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
+            // Non-musical pitch — render as rest
+            durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
             notesString += `z${durationSixteenths} `;
         } else {
             const pitchClass = note.pitch % 12;
-            const octave = Math.floor(note.pitch / 12) - 1; // Middle C (MIDI 60) is Octave 4
+            const octave = Math.floor(note.pitch / 12) - 1; // Middle C (MIDI 60) = octave 4
 
             let abcNote = "";
             if (octave >= 5) {
-                // Octave 5 and above uses lowercase c, d, e...
                 abcNote = pitchClassLower[pitchClass];
-                // c is C5. c' is C6. c'' is C7.
-                for (let i = 5; i < octave; i++) {
-                    abcNote += "'";
-                }
+                for (let i = 5; i < octave; i++) abcNote += "'";
             } else if (octave === 4) {
-                // Octave 4 uses uppercase C, D, E...
                 abcNote = pitchClassUpper[pitchClass];
             } else {
-                // Octave 3 and below uses uppercase with commas
                 abcNote = pitchClassUpper[pitchClass];
-                // C, is C3. C,, is C2.
-                for (let i = octave; i < 4; i++) {
-                    abcNote += ",";
-                }
+                for (let i = octave; i < 4; i++) abcNote += ",";
             }
 
             // 3. Map DURATION
-            const durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
+            durationSixteenths = Math.max(1, Math.round(note.duration / sixteenth));
             notesString += `${abcNote}${durationSixteenths} `;
         }
 
-        // 4. Fake Bar lines every 16 sixteenths (lazy hackathon math)
-        // Hard-wrap the staff every 4 bars (64 sixteenths)
-        if (index > 0 && index % 8 === 0) {
-            // If it's the 4th bar, inject a physical newline so ABCJS draws a new staff below
-            if (index % 32 === 0) {
-                notesString += "|\n";
-            } else {
-                notesString += "| ";
-            }
+        // 4. Bar lines — insert when accumulated beat count reaches one full 4/4 bar (16 sixteenths)
+        beatAccumulator += durationSixteenths;
+        if (beatAccumulator >= 16) {
+            notesString += "| ";
+            beatAccumulator -= 16;
         }
 
         currentTime = note.startTime + note.duration;
