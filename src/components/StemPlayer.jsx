@@ -41,6 +41,10 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
   const audioContextRef = useRef(null);
   const audioSourcesRef = useRef({});
 
+  useEffect(() => {
+    return () => { audioContextRef.current?.close(); };
+  }, []);
+
   // Keep audio element volumes in sync with state
   useEffect(() => {
     Object.entries(audioRefs.current).forEach(([id, el]) => {
