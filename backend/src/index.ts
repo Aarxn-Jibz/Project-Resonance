@@ -318,7 +318,9 @@ app.get('/api/stems/:jobId', async (c) => {
       if (!key) return
       const obj = await c.env.STEMS_BUCKET.get(key)
       if (!obj) return
-      try { midi[stem] = await obj.json() } catch { /* malformed — omit */ }
+      try { midi[stem] = await obj.json() } catch (err) {
+        console.error(`MIDI parse failed for ${stem} (key: ${key}):`, (err as Error).message)
+      }
     }),
   )
 

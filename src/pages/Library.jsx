@@ -35,6 +35,7 @@ export default function Library() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectError, setSelectError] = useState(null);
   const debouncedSearch = useDebounce(search, 300);
 
   const fetchSongs = useCallback(async () => {
@@ -53,11 +54,12 @@ export default function Library() {
   useEffect(() => { fetchSongs(); }, [fetchSongs]);
 
   const handleSelect = async (jobId) => {
+    setSelectError(null);
     try {
       const data = await getStems(jobId);
       navigate('/lab', { state: { stems: data.stems, midi: data.midi, hasMidi: data.has_midi } });
     } catch (e) {
-      console.error('Failed to load stems:', e);
+      setSelectError(e.message);
     }
   };
 
@@ -91,6 +93,12 @@ export default function Library() {
             className="w-full bg-[#111] border border-gray-800 text-white font-mono text-sm pl-11 pr-4 py-3 rounded-lg focus:outline-none focus:border-[#00f0ff] transition-colors tracking-widest placeholder-gray-600"
           />
         </div>
+
+        {selectError && (
+          <div className="text-red-400 text-xs tracking-widest text-center py-3 mb-4 bg-red-500/10 border border-red-500/30 rounded px-4">
+            [ERROR] Failed to load song: {selectError}
+          </div>
+        )}
 
         {/* Song list */}
         {loading && (

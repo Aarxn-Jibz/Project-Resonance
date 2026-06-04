@@ -50,7 +50,7 @@ export function quantize(raw: string): MidiData {
     throw new Error('Quantizer received invalid JSON')
   }
 
-  if (!data.bpm || data.bpm <= 0) {
+  if (!Number.isFinite(data.bpm) || data.bpm <= 0) {
     throw new Error(`Invalid BPM: ${data.bpm}`)
   }
   if (!Array.isArray(data.notes)) {

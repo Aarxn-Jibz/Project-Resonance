@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "predeploy": "bash scripts/check-config.sh",
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "test:watch": "vitest"
