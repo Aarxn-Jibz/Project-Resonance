@@ -180,7 +180,13 @@ app.get('/api/status/:jobId', async (c) => {
 
 app.post('/webhook/complete', async (c) => {
   const auth = c.req.header('Authorization') ?? ''
-  if (auth !== `Bearer ${c.env.WEBHOOK_SECRET}`) {
+  const enc = new TextEncoder()
+  const expected = enc.encode(`Bearer ${c.env.WEBHOOK_SECRET}`)
+  const actual = enc.encode(auth)
+  const authorized =
+    expected.byteLength === actual.byteLength &&
+    crypto.subtle.timingSafeEqual(expected, actual)
+  if (!authorized) {
     return c.json({ error: 'Unauthorized' }, 401)
   }
 
@@ -265,13 +271,16 @@ app.get('/api/library', async (c) => {
   const limit = Math.min(Number(c.req.query('limit') ?? 20), 100)
   const offset = Number(c.req.query('offset') ?? 0)
 
+  // Escape SQL LIKE wildcards so user input is treated as a literal substring.
+  const safeLike = `%${search.replace(/[%_\\]/g, '\\$&')}%`
+
   const { results } = await c.env.LIBRARY_DB.prepare(
     `SELECT job_id, filename, timestamp, has_midi_vocals, has_midi_bass, has_midi_piano
      FROM songs
-     WHERE filename LIKE ?
+     WHERE filename LIKE ? ESCAPE '\\'
      ORDER BY timestamp DESC
      LIMIT ? OFFSET ?`
-  ).bind(`%${search}%`, limit, offset).all()
+  ).bind(safeLike, limit, offset).all()
 
   return c.json({ songs: results })
 })
@@ -296,6 +305,23 @@ app.get('/api/stems/:jobId', async (c) => {
   const toUrl = (key: string | null | undefined) =>
     key ? `${base}/${key}` : null
 
+  // Fetch quantized MIDI JSON content from R2 and embed it in the response
+  // so the frontend can render sheet music without a second round-trip.
+  const midiKeyMap: Record<string, string | null | undefined> = {
+    vocals: row.midi_vocals as string | null,
+    bass:   row.midi_bass   as string | null,
+    piano:  row.midi_piano  as string | null,
+  }
+  const midi: Record<string, unknown> = {}
+  await Promise.all(
+    Object.entries(midiKeyMap).map(async ([stem, key]) => {
+      if (!key) return
+      const obj = await c.env.STEMS_BUCKET.get(key)
+      if (!obj) return
+      try { midi[stem] = await obj.json() } catch { /* malformed — omit */ }
+    }),
+  )
+
   return c.json({
     job_id: jobId,
     stems: {
@@ -306,11 +332,7 @@ app.get('/api/stems/:jobId', async (c) => {
       piano:  toUrl(row.stem_piano  as string | null),
       other:  toUrl(row.stem_other  as string | null),
     },
-    midi: {
-      vocals: toUrl(row.midi_vocals as string | null),
-      bass:   toUrl(row.midi_bass   as string | null),
-      piano:  toUrl(row.midi_piano  as string | null),
-    },
+    midi,
     has_midi: {
       vocals: !!row.has_midi_vocals,
       bass:   !!row.has_midi_bass,

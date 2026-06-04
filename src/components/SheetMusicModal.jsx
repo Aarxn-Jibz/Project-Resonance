@@ -247,7 +247,7 @@ export default function SheetMusicModal({ isOpen, onClose, stemName, midiData })
                                     LATENT TRANSCRIPTION: {stemName}
                                 </h2>
                                 <p className="font-mono text-xs text-gray-500 mt-1">
-                                    Quantized natively via Go gateway. Confidence interval applied.
+                                    Quantized via CF Worker · 1/16 grid
                                 </p>
                             </div>
 
