@@ -80,9 +80,9 @@ export default function Landing() {
             >
               ENTER THE LAB
             </button>
-            <button 
-              onClick={() => window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank')} 
-              className="border border-res-magenta text-res-magenta font-bold tracking-widest px-8 py-4 text-sm hover:bg-res-magenta/10 transition-colors"
+            <button
+              className="border border-res-magenta text-res-magenta font-bold tracking-widest px-8 py-4 text-sm hover:bg-res-magenta/10 transition-colors opacity-50 cursor-not-allowed"
+              disabled
             >
               WATCH VOD
             </button>

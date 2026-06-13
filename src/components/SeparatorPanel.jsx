@@ -101,9 +101,27 @@ export default function SeparatorPanel({ onStateChange, onProgressChange, onFile
     closeSseRef.current?.();
     setStatus('idle');
     setFile(null);
+    setLogs([]);
     setStemUrls(null);
     onStateChange?.('idle');
     onProgressChange?.(0);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropped = e.dataTransfer.files?.[0];
+    if (dropped && (dropped.name.endsWith('.mp3') || dropped.name.endsWith('.wav'))) {
+      setFile(dropped);
+      setStatus('idle');
+      setLogs([]);
+      setStemUrls(null);
+    }
   };
 
   return (
@@ -122,6 +140,8 @@ export default function SeparatorPanel({ onStateChange, onProgressChange, onFile
       {status === 'idle' && (
         <div
           onClick={() => fileInputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
           className="border-2 border-dashed border-white/20 hover:border-res-yellow transition-colors rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer bg-black/20"
         >
           <input
