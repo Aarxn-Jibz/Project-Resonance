@@ -10,9 +10,8 @@
  *
  * **complete** — the copy section is replaced by a `StemPlayer` (the
  * 6-channel stem mixer), and the sphere transitions to a green "isolation
- * active" state.  A hidden `<audio>` element wired to `audioSource` drives
- * the sphere's built-in play/pause control (plays the first stem or a
- * combined file; separate from the individual channel mixer).
+ * active" state.  The sphere's play/pause button delegates to `StemPlayer`
+ * via ref so pressing it plays all 6 stems together, in sync with the mixer.
  *
  * The telemetry values (GLOW_INTENSITY) fluctuate on a timer to give the
  * impression of live signal monitoring — they are decorative and not wired
@@ -36,28 +35,24 @@ import { Music, Square, Layers, Play } from 'lucide-react'; // Added Play
 import StemPlayer from './StemPlayer';
 
 // Added audioSource prop to receive the file URL from Lab.jsx
-export default function TimbreDesign({ engineState = 'idle', engineProgress = 0, stems = null, audioSource = null, midiData = null, onOpenSheet }) {
+export default function TimbreDesign({ engineState = 'idle', engineProgress = 0, audioSource = null, midiData = null, onOpenSheet }) {
   const isComplete = engineState === 'complete';
 
   const [activeGlow, setActiveGlow] = useState(null);
   const coreRef = useRef(null);
 
   // --- AUDIO LOGIC ---
-  const masterAudioRef = useRef(null);
+  // The sphere's play button delegates to StemPlayer (which owns all 6 audio
+  // elements) so pressing it plays all stems simultaneously, exactly like
+  // clicking play inside the mixer itself.
+  const stemPlayerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const togglePlayback = () => {
-    if (!masterAudioRef.current || !audioSource) return;
-
-    if (isPlaying) {
-      masterAudioRef.current.pause();
-    } else {
-      masterAudioRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
+    stemPlayerRef.current?.togglePlay();
   };
 
-  // Reset play state if source changes
+  // Reset sphere icon if source changes (new upload / reset)
   useEffect(() => {
     setIsPlaying(false);
   }, [audioSource]);
@@ -120,9 +115,6 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
       animate={{ opacity: 1 }}
       transition={{ duration: 1 }}
       className="w-full flex flex-col items-center pt-8 pb-32 relative z-20">
-
-      {/* Hidden Master Audio Element */}
-      <audio ref={masterAudioRef} src={audioSource} onEnded={() => setIsPlaying(false)} />
 
       <div className="w-full flex justify-between items-center max-w-6xl mb-8 px-8 flex-shrink-0">
         <div className={`tracking-[0.3em] text-xs font-mono border-b pb-1 ${isComplete ? 'text-green-400 border-green-400' : 'text-res-yellow border-res-yellow'}`}>
@@ -271,8 +263,13 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
           transition={{ delay: 0.5, duration: 0.8 }}
           className="w-full max-w-5xl flex justify-center mt-4 px-8 flex-shrink-0"
         >
-          {/* Passing audioSource into the StemPlayer (which contains your sliders) */}
-          <StemPlayer audioSource={audioSource} midiData={midiData} onOpenSheet={onOpenSheet} />
+          <StemPlayer
+            ref={stemPlayerRef}
+            audioSource={audioSource}
+            midiData={midiData}
+            onOpenSheet={onOpenSheet}
+            onPlayStateChange={setIsPlaying}
+          />
         </motion.div>
       )}
     </motion.div>

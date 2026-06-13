@@ -22,13 +22,14 @@
  * directly into `complete` state using those pre-loaded values.
  */
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import TimbreDesign from '../components/TimbreDesign';
 import SeparatorPanel from '../components/SeparatorPanel';
 import SheetMusicModal from '../components/SheetMusicModal';
 
 export default function Lab() {
   const location = useLocation();
+  const navigate = useNavigate();
   const preloaded = location.state; // set when navigating from Library
 
   const [engineState, setEngineState] = useState(preloaded ? 'complete' : 'idle');
@@ -62,7 +63,7 @@ export default function Lab() {
 
         {/* Right side Terminate Button */}
         <button
-          onClick={() => window.location.href = '/'}
+          onClick={() => navigate('/')}
           className="font-mono text-xs tracking-[0.2em] text-gray-400 border border-gray-600 px-4 py-2 hover:text-white hover:border-white hover:bg-white/5 transition-all uppercase"
         >
           [ Terminate ]

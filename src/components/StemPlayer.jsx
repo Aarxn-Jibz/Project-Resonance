@@ -20,7 +20,7 @@
  * @param {Function}      [props.onOpenSheet] - Called with the stem id string
  *   when the sheet music button is clicked.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle } from 'react';
 import { Play, Pause, Volume2, VolumeX, Download, AudioWaveform, FileText } from 'lucide-react';
 
 const STEM_CONFIGS = [
@@ -32,7 +32,7 @@ const STEM_CONFIGS = [
   { id: 'other',  name: 'OTHER.FLAC',   color: 'text-[#d4ff00]' },
 ];
 
-export default function StemPlayer({ audioSource = null, midiData = null, onOpenSheet }) {
+export default function StemPlayer({ audioSource = null, midiData = null, onOpenSheet, onPlayStateChange, ref }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volumes, setVolumes] = useState(
     STEM_CONFIGS.reduce((acc, s) => ({ ...acc, [s.id]: 0.8 }), {})
@@ -40,6 +40,9 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
   const audioRefs = useRef({});
   const audioContextRef = useRef(null);
   const audioSourcesRef = useRef({});
+
+  // Stable ref so useImperativeHandle's factory never becomes stale
+  const togglePlayRef = useRef(null);
 
   useEffect(() => {
     return () => { audioContextRef.current?.close(); };
@@ -55,16 +58,26 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
   const togglePlay = () => {
     const next = !isPlaying;
     setIsPlaying(next);
+    onPlayStateChange?.(next);
     Object.values(audioRefs.current).forEach(el => {
       if (!el) return;
       next ? el.play().catch(() => {}) : el.pause();
     });
   };
 
+  // Keep the ref current so the imperative handle always calls fresh state
+  togglePlayRef.current = togglePlay;
+
+  // Expose togglePlay to parent (TimbreDesign sphere button) via ref
+  useImperativeHandle(ref, () => ({
+    togglePlay: () => togglePlayRef.current?.(),
+  }), []);
+
   const playOriginal = () => {
     const fullVolumes = STEM_CONFIGS.reduce((acc, s) => ({ ...acc, [s.id]: 1.0 }), {});
     setVolumes(fullVolumes);
     setIsPlaying(true);
+    onPlayStateChange?.(true);
     try {
       // Reuse the existing AudioContext — creating a new one each call would
       // leave the old one open and calling createMediaElementSource on an
