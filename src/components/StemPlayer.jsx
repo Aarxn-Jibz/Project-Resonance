@@ -73,7 +73,7 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
     togglePlay: () => togglePlayRef.current?.(),
   }), []);
 
-  const playOriginal = () => {
+  const playOriginal = async () => {
     const fullVolumes = STEM_CONFIGS.reduce((acc, s) => ({ ...acc, [s.id]: 1.0 }), {});
     setVolumes(fullVolumes);
     setIsPlaying(true);
@@ -86,6 +86,9 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
         audioContextRef.current = new AudioContext();
       }
       const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
       Object.entries(audioRefs.current).forEach(([id, el]) => {
         if (!el) return;
         if (!audioSourcesRef.current[id]) {
@@ -111,6 +114,26 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
   };
 
   const toggleMute = (id) => handleVolumeChange(id, volumes[id] === 0 ? 0.8 : 0);
+
+  const handleDownload = async (url, filename) => {
+    if (!url) return;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error(`Download failed for ${filename}:`, err);
+      window.open(url, '_blank');
+    }
+  };
 
   return (
     <div className="w-full max-w-2xl bg-[#111] border border-gray-800 p-6 rounded-lg font-mono relative z-40">
@@ -184,13 +207,13 @@ export default function StemPlayer({ audioSource = null, midiData = null, onOpen
                   <FileText className="w-4 h-4" />
                 </button>
               )}
-              <a
-                href={audioSource?.[stem.id]}
-                download={stem.name}
-                className="p-2 text-gray-500 hover:text-[#4ade80] hover:bg-green-400/10 rounded transition-all"
+              <button
+                onClick={() => handleDownload(audioSource?.[stem.id], stem.name)}
+                className="p-2 text-gray-500 hover:text-[#4ade80] hover:bg-green-400/10 rounded transition-all cursor-pointer"
+                title="Download Stem"
               >
                 <Download className="w-4 h-4" />
-              </a>
+              </button>
             </div>
           </div>
         ))}
