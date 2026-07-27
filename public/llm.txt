@@ -1,0 +1,32 @@
+# Project Resonance (deSynth)
+
+High-fidelity neural audio separation and transcription studio. It splits multi-instrument audio tracks (vocals, drums, bass, guitar, piano, other) into separate stem files and automatically transcribes tonal stems into quantized MIDI and sheet music.
+
+## Architecture
+
+- **Frontend**: React (Vite) + Tailwind CSS + Framer Motion. Deployed on Cloudflare Pages.
+- **Backend API**: Bun / Hono framework. Deployed on Cloudflare Workers. Handles audio uploads, proxies to the ML worker, manages quantization, and manages song library metadata.
+- **ML Worker**: Python / FastAPI / Demucs (`htdemucs_6s`) / Basic Pitch. Deployed on Modal with CUDA acceleration.
+- **Database & Storage**:
+  - **Cloudflare D1**: SQL database for song metadata and library tracks.
+  - **Cloudflare R2**: Object storage for FLAC stem audio and MIDI JSON files.
+  - **Cloudflare KV**: Key-Value cache for job-status polling and duplicate upload checks (SHA-256).
+
+## Key Frontend Pages & Routes
+
+- `/` — **Landing**: Retro-futuristic, high-fidelity animated presentation of the project.
+- `/lab` — **Studio/Lab**: The main audio workspace. Uploads audio, triggers the separation job, displays real-time processing logs, features a 4-channel audio mixer, and visualizes transcribed sheets.
+- `/library` — **Library**: Browse and playback previously processed songs from the public catalogue.
+- `/chaos` — **Chaos**: Lore page and interactive audio easter eggs.
+
+## Integration & API Endpoints
+
+- `POST /api/upload` — Initiates stem separation. Returns a `job_id` and checks for duplicate files using SHA-256 hash.
+- `GET /sse/:jobId` — Server-Sent Events endpoint to stream real-time task status.
+- `WS /ws` — WebSocket server for status broadcasts.
+
+## ML Separator Specifications
+
+- **Separation Engine**: `htdemucs_6s` (splits into Vocals, Drums, Bass, Guitar, Piano, Other).
+- **Transcription Engine**: Spotify's `basic-pitch` runs on `vocals`, `bass`, and `piano` stems.
+- **Quantizer**: Snaps transcribed notes to the nearest 16th-note grid based on song BPM.
