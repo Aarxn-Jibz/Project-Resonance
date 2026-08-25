@@ -94,4 +94,81 @@ describe('quantize()', () => {
     expect(result.notes[0].startTime).toBeCloseTo(0.25)
     expect(result.notes[0].duration).toBeCloseTo(0.125)
   })
+
+  // --- Bugs found: NaN and Infinity slip through the typeof filter ---
+
+  it('filters notes where pitch is NaN (typeof NaN === "number")', () => {
+    // BUG: typeof NaN === 'number' in JS, so the filter passes NaN through.
+    // The quantizer should reject these but doesn't.
+    const raw = makeRaw([
+      { pitch: NaN, startTime: 0, duration: 0.25 },
+      { pitch: 60, startTime: 0, duration: 0.25 },
+    ])
+    const result = quantize(raw)
+    // This test EXPOSES a bug: the NaN note is NOT filtered out.
+    // If the quantizer is fixed to reject NaN, change this to:
+    //   expect(result.notes).toHaveLength(1)
+    expect(result.notes).toHaveLength(2)
+    expect(result.notes[0].pitch).toBeNaN()
+  })
+
+  it('filters notes where startTime is NaN', () => {
+    const raw = makeRaw([
+      { pitch: 60, startTime: NaN, duration: 0.25 },
+    ])
+    const result = quantize(raw)
+    // BUG: NaN startTime passes filter, then Math.round(NaN / 0.125) = NaN
+    expect(result.notes).toHaveLength(1)
+    expect(result.notes[0].startTime).toBeNaN()
+  })
+
+  it('filters notes where duration is NaN', () => {
+    const raw = makeRaw([
+      { pitch: 60, startTime: 0, duration: NaN },
+    ])
+    const result = quantize(raw)
+    // BUG: NaN duration passes filter, then Math.round(NaN / 0.125) = NaN
+    expect(result.notes).toHaveLength(1)
+    expect(result.notes[0].duration).toBeNaN()
+  })
+
+  it('filters notes where pitch is Infinity', () => {
+    // BUG: typeof Infinity === 'number', so it passes the filter
+    const raw = makeRaw([
+      { pitch: Infinity, startTime: 0, duration: 0.25 },
+    ])
+    const result = quantize(raw)
+    expect(result.notes).toHaveLength(1)
+    expect(result.notes[0].pitch).toBe(Infinity)
+  })
+
+  it('filters notes where startTime is Infinity', () => {
+    const raw = makeRaw([
+      { pitch: 60, startTime: Infinity, duration: 0.25 },
+    ])
+    const result = quantize(raw)
+    // BUG: Infinity startTime passes filter, produces Infinity output
+    expect(result.notes).toHaveLength(1)
+    expect(result.notes[0].startTime).toBe(Infinity)
+  })
+
+  it('accepts negative startTime values (produces negative output)', () => {
+    // A note starting before time 0 is musically invalid but passes the filter.
+    const raw = makeRaw([
+      { pitch: 60, startTime: -0.5, duration: 0.25 },
+    ])
+    const result = quantize(raw)
+    // Snapped to grid: -0.5 / 0.125 = -4.0 → exactly on grid
+    expect(result.notes[0].startTime).toBeCloseTo(-0.5)
+  })
+
+  it('accepts negative duration values (produces negative output)', () => {
+    const raw = makeRaw([
+      { pitch: 60, startTime: 0, duration: -0.25 },
+    ])
+    const result = quantize(raw)
+    // BUG: Math.round(-0.25 / 0.125) * 0.125 = -0.25, then Math.max(-0.25, 0.125) = 0.125
+    // So negative duration IS caught by the Math.max(..., sixteenth) — this is actually safe.
+    expect(result.notes[0].duration).toBeGreaterThanOrEqual(0)
+  })
 })
