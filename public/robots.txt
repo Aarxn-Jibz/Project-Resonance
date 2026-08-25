@@ -1,0 +1,9 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Host
+Host: https://desynth.pages.dev
+
+# Sitemaps
+Sitemap: https://desynth.pages.dev/sitemap.xml

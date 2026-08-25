@@ -1,0 +1,8 @@
+[
+  {
+    "allowed": {
+      "origins": ["*"],
+      "methods": ["GET", "HEAD", "OPTIONS"]
+    }
+  }
+]

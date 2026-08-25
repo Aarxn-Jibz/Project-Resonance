@@ -151,7 +151,10 @@ app.post('/api/upload', async (c) => {
           }
         }
 
-        await fetch(mlUrl, { method: 'POST', headers: mlHeaders, body: mlBody })
+        const res = await fetch(mlUrl, { method: 'POST', headers: mlHeaders, body: mlBody })
+        if (!res.ok) {
+          console.error(`ML job dispatch failed: ${res.status} ${res.statusText} (${await res.text()})`)
+        }
       } catch (err: unknown) {
         console.error('Failed to dispatch ML job:', (err as Error).message)
       }
