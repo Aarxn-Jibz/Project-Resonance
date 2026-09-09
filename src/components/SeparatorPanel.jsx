@@ -125,11 +125,11 @@ export default function SeparatorPanel({ onStateChange, onProgressChange, onFile
   };
 
   return (
-    <div className="w-full bg-[#0f1123]/90 backdrop-blur-md border border-white/10 p-6 rounded-xl shadow-2xl relative z-50">
+    <div className="w-full bg-[#0f1123]/90 backdrop-blur-md border border-white/10 p-4 sm:p-6 rounded-xl shadow-2xl relative z-50">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
-        <h3 className="font-display font-bold text-xl text-white tracking-widest uppercase flex items-center gap-2">
+      <div className="flex items-start sm:items-center justify-between gap-3 mb-6 border-b border-white/10 pb-4">
+        <h3 className="font-display font-bold text-base sm:text-xl text-white tracking-wider sm:tracking-widest uppercase flex items-center gap-2 leading-tight">
           <Cpu className="text-res-yellow w-5 h-5" />
           Latent Separation Engine
         </h3>
@@ -142,7 +142,7 @@ export default function SeparatorPanel({ onStateChange, onProgressChange, onFile
           onClick={() => fileInputRef.current?.click()}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className="border-2 border-dashed border-white/20 hover:border-res-yellow transition-colors rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer bg-black/20"
+          className="border-2 border-dashed border-white/20 hover:border-res-yellow transition-colors rounded-lg px-4 py-8 sm:p-10 flex flex-col items-center justify-center cursor-pointer bg-black/20"
         >
           <input
             type="file"
@@ -158,7 +158,7 @@ export default function SeparatorPanel({ onStateChange, onProgressChange, onFile
           {file && (
             <button
               onClick={(e) => { e.stopPropagation(); handleProcess(); }}
-              className="mt-6 bg-res-yellow text-black font-bold tracking-widest px-8 py-3 text-sm hover:scale-105 transition-transform"
+              className="mt-6 min-h-12 w-full sm:w-auto bg-res-yellow text-black font-bold tracking-widest px-6 sm:px-8 py-3 text-xs sm:text-sm hover:scale-105 transition-transform"
             >
               INITIALIZE SPLIT
             </button>

@@ -4,6 +4,14 @@ body, html {
   margin: 0;
   padding: 0;
 }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+button, a, input {
+  -webkit-tap-highlight-color: transparent;
+}
 @theme {
   --color-res-dark: #0a0510;
   --color-res-yellow: #d4ff00;

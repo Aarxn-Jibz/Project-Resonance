@@ -114,33 +114,33 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1 }}
-      className="w-full flex flex-col items-center pt-8 pb-32 relative z-20">
+      className="w-full flex flex-col items-center pt-4 sm:pt-8 pb-16 sm:pb-32 relative z-20">
 
-      <div className="w-full flex justify-between items-center max-w-6xl mb-8 px-8 flex-shrink-0">
-        <div className={`tracking-[0.3em] text-xs font-mono border-b pb-1 ${isComplete ? 'text-green-400 border-green-400' : 'text-res-yellow border-res-yellow'}`}>
+      <div className="w-full flex justify-between items-center max-w-6xl mb-6 sm:mb-8 px-2 sm:px-8 flex-shrink-0">
+        <div className={`tracking-[0.2em] sm:tracking-[0.3em] text-[10px] sm:text-xs font-mono border-b pb-1 ${isComplete ? 'text-green-400 border-green-400' : 'text-res-yellow border-res-yellow'}`}>
           {isComplete ? 'STEMS // DECOUPLED' : 'SIDE B — TRACK 06'}
         </div>
       </div>
 
-      <div className="text-center mb-12 flex-shrink-0">
-        <h1 className="text-7xl font-bold italic text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+      <div className="text-center mb-7 sm:mb-12 px-2 flex-shrink-0">
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold italic text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
           {isComplete ? 'Sonic ' : 'Timbre '}
-          <span className="font-cursive text-res-magenta font-normal normal-case text-8xl -ml-4">
+          <span className="font-cursive text-res-magenta font-normal normal-case text-5xl sm:text-7xl lg:text-8xl -ml-2 sm:-ml-4">
             {isComplete ? 'Fracture' : 'Design'}
           </span>
         </h1>
-        <p className={`${isComplete ? 'text-green-400' : 'text-res-yellow'} mt-2 font-mono text-sm tracking-widest transition-colors`}>
+        <p className={`${isComplete ? 'text-green-400' : 'text-res-yellow'} mt-2 font-mono text-[10px] sm:text-sm tracking-wider sm:tracking-widest transition-colors`}>
           {isComplete ? 'Audio components successfully isolated.' : 'Where the latent space meets the dance floor.'}
         </p>
       </div>
 
-      <div className={`relative w-full max-w-4xl flex items-center justify-center transition-all duration-700 flex-shrink-0 ${isComplete ? 'h-[300px] mb-8' : 'h-[400px] mb-20'}`}>
+      <div className={`relative w-full max-w-4xl flex items-center justify-center transition-all duration-700 flex-shrink-0 ${isComplete ? 'h-[250px] sm:h-[300px] mb-8' : 'h-[280px] sm:h-[400px] mb-10 sm:mb-20'}`}>
 
         <motion.div
           ref={coreRef}
           animate={{ rotate: 360 }}
           transition={{ duration: isComplete ? 30 : 60, repeat: Infinity, ease: "linear" }}
-          className={`w-80 h-80 rounded-full flex flex-col items-center justify-center relative z-10 overflow-hidden bg-gradient-to-br from-gray-100 via-gray-300 to-gray-900 border-2 transition-all duration-500 ${sphereBorder} ${sphereShadow}`}
+          className={`w-52 h-52 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full flex flex-col items-center justify-center relative z-10 overflow-hidden bg-gradient-to-br from-gray-100 via-gray-300 to-gray-900 border-2 transition-all duration-500 ${sphereBorder} ${sphereShadow}`}
         >
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgyMHYyMEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDE5aDIwTTAgOWhVMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZDRmZjAwIiBzdHJva2Utb3BhY2l0eT0iMC40IiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-80 mix-blend-overlay rounded-full scale-[1.8]" />
           <div className={`absolute inset-0 blur-2xl rounded-full transition-colors duration-500 ${bloomBg}`} />
@@ -148,7 +148,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
           {/* Main Playback Control inside the Sphere */}
           <button
             onClick={togglePlayback}
-            className="relative z-30 bg-black/40 p-6 rounded-full border border-white/20 hover:scale-110 transition-transform backdrop-blur-md group"
+            className="relative z-30 bg-black/40 p-4 sm:p-6 rounded-full border border-white/20 hover:scale-110 transition-transform backdrop-blur-md group"
           >
             {isPlaying ? (
               <Square className="w-8 h-8 text-white fill-white" />
@@ -158,7 +158,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
           </button>
         </motion.div>
 
-        <div className={`absolute -bottom-8 font-mono tracking-[0.3em] text-sm font-bold z-20 border-b pb-1 transition-colors ${isComplete && !activeGlow ? 'text-green-400 border-green-400' : (activeGlow ? `text-white border-white` : 'text-res-magenta border-res-magenta')}`}>
+        <div className={`absolute bottom-0 sm:-bottom-8 font-mono tracking-[0.16em] sm:tracking-[0.3em] text-[10px] sm:text-sm text-center font-bold z-20 border-b pb-1 transition-colors ${isComplete && !activeGlow ? 'text-green-400 border-green-400' : (activeGlow ? `text-white border-white` : 'text-res-magenta border-res-magenta')}`}>
           {isComplete ? 'ISOLATION_MATRIX_ACTIVE' : 'LATENT_CORE_01'}
         </div>
 
@@ -169,7 +169,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
           onDrag={(e, info) => handleDrag(info, 'cyan')}
           animate={{ y: [0, -15, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-10 left-[20%] flex flex-col items-center cursor-grab active:cursor-grabbing z-30"
+          className="absolute top-6 left-[4%] sm:top-10 sm:left-[20%] hidden sm:flex flex-col items-center cursor-grab active:cursor-grabbing z-30"
         >
           <Music className="w-12 h-12 text-[#00f0ff] drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]" />
           <span className="font-mono text-[10px] text-[#00f0ff] mt-2 tracking-widest bg-black/50 px-2 py-1 rounded border border-[#00f0ff]/30">
@@ -184,7 +184,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
           onDrag={(e, info) => handleDrag(info, 'gray')}
           animate={{ y: [0, 20, 0] }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute bottom-10 left-[15%] flex flex-col items-center cursor-grab active:cursor-grabbing z-30"
+          className="absolute bottom-10 left-[15%] hidden sm:flex flex-col items-center cursor-grab active:cursor-grabbing z-30"
         >
           <div className="w-8 h-20 bg-gray-500/50 backdrop-blur-md border border-gray-400 transform -rotate-45 shadow-[0_0_10px_rgba(156,163,175,0.5)]" />
           <span className="font-mono text-[10px] text-gray-400 mt-2 tracking-widest bg-black/50 px-2 py-1 rounded border border-gray-500/30">
@@ -199,7 +199,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
           onDrag={(e, info) => handleDrag(info, 'magenta')}
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-          className="absolute bottom-12 right-[20%] flex flex-col items-center cursor-grab active:cursor-grabbing z-30"
+          className="absolute bottom-12 right-[20%] hidden sm:flex flex-col items-center cursor-grab active:cursor-grabbing z-30"
         >
           <Layers className="w-12 h-12 text-res-magenta drop-shadow-[0_0_15px_rgba(225,0,117,0.8)]" />
           <span className="font-mono text-[10px] text-res-magenta mt-2 tracking-widest bg-black/50 px-2 py-1 rounded border border-res-magenta/30">
@@ -208,7 +208,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
         </motion.div>
 
         {/* Telemetry Box */}
-        <div className="absolute top-10 right-0 border border-[#333] bg-res-panel/80 p-6 backdrop-blur-sm w-64 z-20 pointer-events-none">
+        <div className="absolute top-10 right-0 border border-[#333] bg-res-panel/80 p-6 backdrop-blur-sm w-64 z-20 pointer-events-none hidden lg:block">
           <h3 className="text-res-yellow text-[10px] font-mono mb-6 flex items-center justify-between tracking-widest">
             {isComplete ? 'STEM TELEMETRY' : 'REAL-TIME TELEMETRY'}
             <span className={`w-2 h-2 rounded-full animate-pulse ${isComplete && !activeGlow ? 'bg-green-400 shadow-[0_0_8px_#4ade80]' : (activeGlow === 'cyan' ? 'bg-[#00f0ff] shadow-[0_0_8px_#00f0ff]' : activeGlow === 'gray' ? 'bg-gray-400 shadow-[0_0_8px_gray]' : 'bg-res-magenta shadow-[0_0_8px_#e10075]')}`} />
@@ -233,7 +233,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
       </div>
 
       {!isComplete ? (
-        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-12 px-8 mt-4 flex-shrink-0">
+        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 px-2 sm:px-8 mt-4 flex-shrink-0">
           <div>
             <h4 className="text-gray-500 font-mono text-4xl mb-2 opacity-50 italic">01</h4>
             <h3 className="text-res-yellow font-display text-xl mb-4">The Groovy Manifold</h3>
@@ -261,7 +261,7 @@ export default function TimbreDesign({ engineState = 'idle', engineProgress = 0,
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="w-full max-w-5xl flex justify-center mt-4 px-8 flex-shrink-0"
+          className="w-full max-w-5xl flex justify-center mt-4 px-0 sm:px-8 flex-shrink-0"
         >
           <StemPlayer
             ref={stemPlayerRef}

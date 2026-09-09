@@ -24,43 +24,43 @@ export default function Landing() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2a0845] via-[#120428] to-res-dark text-white font-display overflow-hidden relative">
+    <div className="min-h-dvh bg-gradient-to-br from-[#2a0845] via-[#120428] to-res-dark text-white font-display overflow-x-hidden relative">
       
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGg0MHY0MEgwem0yMCAyMGgyMHYyMEgyMHptLTIwIDBoMjB2MjBIMHoiIGZpbGw9IiNmZmZmZmYwNSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+')] opacity-20 pointer-events-none" />
 
       {/* Navbar */}
-      <nav className="relative z-10 flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
+      <nav className="relative z-10 flex justify-between items-center px-4 sm:px-8 py-3 sm:py-4 max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
           {/* Replaced the yellow box with your logo */}
-          <img src={logoImg} alt="Project Resonance Logo" className="w-14 h-14 object-contain rounded-sm" />
+          <img src={logoImg} alt="Project Resonance Logo" className="w-11 h-11 sm:w-14 sm:h-14 object-contain rounded-sm" />
           <span className="font-bold tracking-[0.2em] text-sm">deSynth</span>
         </div>
         <button 
           onClick={() => setIsMenuOpen(true)}
-          className="w-10 h-10 border border-res-magenta/50 rounded-full flex items-center justify-center hover:bg-res-magenta/20 transition-colors z-50"
+          className="w-11 h-11 border border-res-magenta/50 rounded-full flex items-center justify-center hover:bg-res-magenta/20 transition-colors z-50"
         >
           <span className="w-4 h-0.5 bg-res-yellow block relative after:absolute after:w-4 after:h-0.5 after:bg-res-yellow after:-top-1.5 before:absolute before:w-4 before:h-0.5 before:bg-res-yellow before:top-1.5" />
         </button>
       </nav>
 
       {/* Main Content */}
-      <main className="relative z-10 flex flex-col lg:flex-row items-center justify-between p-8 max-w-7xl mx-auto -mt-8 h-full">
+      <main className="relative z-10 flex flex-col lg:flex-row items-center justify-between px-4 py-8 sm:p-8 max-w-7xl mx-auto lg:-mt-8">
         
         {/* Left Column: Typography & CTAs */}
-        <div className="lg:w-3/5 space-y-6">
-          <div className="inline-block border border-res-magenta text-res-magenta text-xs font-mono px-4 py-1.5 rounded-full tracking-widest bg-res-magenta/10">
+        <div className="w-full lg:w-3/5 space-y-5 sm:space-y-6">
+          <div className="inline-block border border-res-magenta text-res-magenta text-[10px] sm:text-xs font-mono px-3 sm:px-4 py-1.5 rounded-full tracking-widest bg-res-magenta/10">
             <span className="w-2 h-2 inline-block bg-res-yellow rounded-full mr-2 animate-pulse" />
             ANALOG SOUL / DIGITAL MIND
           </div>
 
           <div className="leading-none select-none relative z-20">
-            <h1 className="text-[15vw] lg:text-[180px] font-black italic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] tracking-tighter">
+            <h1 className="text-[18vw] sm:text-[15vw] lg:text-[180px] font-black italic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] tracking-tighter whitespace-nowrap">
               de<span className="text-res-yellow drop-shadow-[0_0_20px_rgba(212,255,0,0.5)]">Synth</span>
             </h1>
           </div>
 
-          <h2 className="font-cursive text-5xl lg:text-7xl text-res-magenta font-normal mt-4 lg:mt-2 ml-4 lg:ml-8 relative z-30 transform -rotate-2">
+          <h2 className="font-cursive text-4xl sm:text-5xl lg:text-7xl text-res-magenta font-normal mt-4 lg:mt-2 sm:ml-4 lg:ml-8 relative z-30 transform -rotate-2 leading-tight">
             Dissecting sound into structure
           </h2>
 
@@ -69,15 +69,15 @@ export default function Landing() {
             instruments, and instantly transcribe the music with zero effort.
           </p>
 
-          <div className="flex gap-4 pt-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-5 sm:pt-8">
             <button 
               onClick={() => navigate('/lab')} 
-              className="bg-res-yellow text-black font-bold tracking-widest px-8 py-4 text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(212,255,0,0.4)]"
+              className="min-h-12 w-full sm:w-auto bg-res-yellow text-black font-bold tracking-widest px-8 py-3 sm:py-4 text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(212,255,0,0.4)]"
             >
               ENTER THE LAB
             </button>
             <button
-              className="border border-res-magenta text-res-magenta font-bold tracking-widest px-8 py-4 text-sm hover:bg-res-magenta/10 transition-colors opacity-50 cursor-not-allowed"
+              className="min-h-12 w-full sm:w-auto border border-res-magenta text-res-magenta font-bold tracking-widest px-8 py-3 sm:py-4 text-sm hover:bg-res-magenta/10 transition-colors opacity-50 cursor-not-allowed"
               disabled
             >
               WATCH VOD
@@ -86,12 +86,12 @@ export default function Landing() {
         </div>
 
         {/* Right Column: Floating Artwork */}
-        <div className="lg:w-2/5 relative mt-16 lg:mt-0 h-[500px] w-full flex justify-center items-center pointer-events-none">
+        <div className="lg:w-2/5 relative mt-10 sm:mt-16 lg:mt-0 h-[330px] sm:h-[430px] lg:h-[500px] w-full flex justify-center items-center pointer-events-none">
           {/* Headphones Image - Removed mix-blend, brightened it up, kept the grayscale hover effect */}
           <motion.div 
             animate={{ y: [-10, 10, -10], rotate: [0, 2, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="w-[300px] h-[300px] lg:w-[400px] lg:h-[400px] bg-[#1a0525] rounded-2xl border border-white/10 shadow-2xl relative z-10 overflow-hidden flex items-center justify-center shadow-res-magenta/20 pointer-events-auto"
+            className="w-[250px] h-[250px] sm:w-[330px] sm:h-[330px] lg:w-[400px] lg:h-[400px] bg-[#1a0525] rounded-2xl border border-white/10 shadow-2xl relative z-10 overflow-hidden flex items-center justify-center shadow-res-magenta/20 pointer-events-auto"
           >
             <img 
               src={headphonesImg} 
@@ -104,7 +104,7 @@ export default function Landing() {
           <motion.div 
             animate={{ y: [10, -10, 10], rotate: [5, 0, 5] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute top-10 right-0 lg:-right-10 w-48 h-48 bg-black rounded-lg shadow-2xl border border-white/20 flex items-center justify-center z-20 shadow-black/80 pointer-events-auto overflow-hidden"
+            className="absolute top-3 right-0 sm:top-10 lg:-right-10 w-32 h-32 sm:w-48 sm:h-48 bg-black rounded-lg shadow-2xl border border-white/20 flex items-center justify-center z-20 shadow-black/80 pointer-events-auto overflow-hidden"
           >
              <img 
                src={cassetteImg} 
@@ -123,15 +123,15 @@ export default function Landing() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', ease: 'easeInOut', duration: 0.3 }}
-            className="fixed inset-0 bg-res-dark/95 z-40 flex flex-col items-center justify-center backdrop-blur-md"
+            className="fixed inset-0 bg-res-dark/95 z-40 flex flex-col items-center justify-center overflow-y-auto px-4 py-20 backdrop-blur-md"
           >
             <button 
               onClick={() => setIsMenuOpen(false)}
-              className="absolute top-8 right-8 text-white font-mono text-xl hover:text-res-magenta"
+              className="absolute top-4 right-4 sm:top-8 sm:right-8 min-h-11 px-2 text-white font-mono text-base sm:text-xl hover:text-res-magenta"
             >
               [CLOSE]
             </button>
-            <nav className="flex flex-col items-center gap-8 font-display text-3xl font-bold uppercase tracking-widest">
+            <nav className="flex flex-col items-center gap-6 sm:gap-8 font-display text-2xl sm:text-3xl font-bold uppercase tracking-widest text-center">
               <a href="/" className="text-white hover:text-res-yellow transition-colors" onClick={() => setIsMenuOpen(false)}>Home</a>
               <button
                 onClick={() => { setIsMenuOpen(false); navigate('/library'); }}

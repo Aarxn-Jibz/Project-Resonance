@@ -217,7 +217,7 @@ export default function SheetMusicModal({ isOpen, onClose, stemName, midiData })
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl bg-[#111] border border-gray-800 rounded-xl shadow-2xl z-[1000] overflow-hidden flex flex-col max-h-[90vh]"
+                        className="fixed inset-3 sm:inset-6 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[calc(100%-3rem)] max-w-4xl bg-[#111] border border-gray-800 rounded-xl shadow-2xl z-[1000] overflow-hidden flex flex-col md:max-h-[90vh]"
                     >
                         {/* 
                             Crucial scoped styles for abcjs SVGs
@@ -237,12 +237,16 @@ export default function SheetMusicModal({ isOpen, onClose, stemName, midiData })
                             .abc-container svg rect {
                                 fill: transparent !important;
                             }
+                            .abc-scroll {
+                                overscroll-behavior: contain;
+                                -webkit-overflow-scrolling: touch;
+                            }
                         `}</style>
 
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-[#0a0a0a]">
-                            <div>
-                                <h2 className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 border-b border-gray-800 bg-[#0a0a0a]">
+                            <div className="min-w-0">
+                                <h2 className="text-sm sm:text-xl font-display font-bold text-white uppercase tracking-wider sm:tracking-widest flex items-center gap-2 sm:gap-3 break-words">
                                     <FileAudio className={`w-5 h-5 ${stemName === 'vocals' ? 'text-[#00f0ff]' : 'text-[#e10075]'}`} />
                                     LATENT TRANSCRIPTION: {stemName}
                                 </h2>
@@ -251,24 +255,24 @@ export default function SheetMusicModal({ isOpen, onClose, stemName, midiData })
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                                 <button
                                     onClick={handleDownloadSVG}
-                                    className="flex items-center gap-2 font-mono text-xs text-gray-400 hover:text-white hover:bg-white/10 px-4 py-2 rounded transition-colors border border-gray-800"
+                                    className="min-h-11 flex flex-1 sm:flex-none items-center justify-center gap-2 font-mono text-[10px] sm:text-xs text-gray-400 hover:text-white hover:bg-white/10 px-3 sm:px-4 py-2 rounded transition-colors border border-gray-800"
                                 >
                                     <Download className="w-4 h-4" />
                                     SVG VECTOR
                                 </button>
                                 <button
                                     onClick={handleDownloadMIDI}
-                                    className="flex items-center gap-2 font-mono text-xs bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded transition-colors"
+                                    className="min-h-11 flex flex-1 sm:flex-none items-center justify-center gap-2 font-mono text-[10px] sm:text-xs bg-gray-800 hover:bg-gray-700 text-white px-3 sm:px-4 py-2 rounded transition-colors"
                                 >
                                     <Download className="w-4 h-4" />
                                     RAW DATA
                                 </button>
                                 <button
                                     onClick={onClose}
-                                    className="text-gray-500 hover:text-white transition-colors p-2"
+                                    className="min-w-11 min-h-11 flex items-center justify-center text-gray-500 hover:text-white transition-colors"
                                 >
                                     <X className="w-6 h-6" />
                                 </button>
@@ -276,10 +280,10 @@ export default function SheetMusicModal({ isOpen, onClose, stemName, midiData })
                         </div>
 
                         {/* Scrollable Notation Body */}
-                        <div className="p-8 overflow-y-auto bg-[#1a1a1a] flex-1">
+                        <div className="abc-scroll p-3 sm:p-8 overflow-auto bg-[#1a1a1a] flex-1">
                             <div
                                 ref={paperRef}
-                                className="w-full bg-transparent abc-container"
+                                className="w-full min-w-[36rem] sm:min-w-0 bg-transparent abc-container"
                             />
                         </div>
                     </motion.div>

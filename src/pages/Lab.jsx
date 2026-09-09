@@ -48,15 +48,15 @@ export default function Lab() {
 
 
   return (
-    <div className="h-screen w-full bg-[#0a0a0a] text-white flex flex-col font-display relative overflow-hidden">
+    <div className="h-dvh min-h-[36rem] w-full bg-[#0a0a0a] text-white flex flex-col font-display relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.03)_0%,transparent_70%)] pointer-events-none" />
 
       {/* Nav */}
-      <nav className="w-full p-6 flex justify-between items-center z-50 flex-shrink-0">
+      <nav className="w-full px-3 py-4 sm:p-6 flex justify-between items-center gap-3 z-50 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full ${isDone ? 'bg-green-500 animate-pulse' : 'bg-res-yellow'}`} />
-          <span className="font-mono text-xs tracking-[0.3em] font-bold">
+          <span className="font-mono text-[9px] sm:text-xs tracking-[0.12em] sm:tracking-[0.3em] font-bold leading-tight">
             {isDone ? 'RESONANCE_STEMS_READY' : 'RESONANCE_SYSTEM_ACTIVE'}
           </span>
         </div>
@@ -64,18 +64,18 @@ export default function Lab() {
         {/* Right side Terminate Button */}
         <button
           onClick={() => navigate('/')}
-          className="font-mono text-xs tracking-[0.2em] text-gray-400 border border-gray-600 px-4 py-2 hover:text-white hover:border-white hover:bg-white/5 transition-all uppercase"
+          className="min-h-11 shrink-0 font-mono text-[10px] sm:text-xs tracking-[0.1em] sm:tracking-[0.2em] text-gray-400 border border-gray-600 px-3 sm:px-4 py-2 hover:text-white hover:border-white hover:bg-white/5 transition-all uppercase"
         >
           [ Terminate ]
         </button>
       </nav>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 w-full relative p-6 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 w-full relative p-3 sm:p-6 overflow-y-auto overflow-x-hidden">
 
         {/* The Split Container */}
         <div className={`flex transition-all duration-1000 ease-in-out gap-10 max-w-[1600px] mx-auto 
-          ${isDone ? 'flex-row items-start' : 'flex-col items-center justify-center min-h-[70vh]'}`}
+          ${isDone ? 'flex-col xl:flex-row items-stretch xl:items-start gap-6 xl:gap-10' : 'flex-col items-center justify-center min-h-[70vh]'}`}
         >
 
           {/* LEFT SIDE: The Sphere/Players */}
@@ -91,7 +91,7 @@ export default function Lab() {
 
           {/* RIGHT SIDE (or Center): The Engine Panel */}
           <div className={`transition-all duration-1000 ease-in-out flex-shrink-0 z-20 
-            ${isDone ? 'w-[450px] mt-10' : 'w-full max-w-xl'} 
+            ${isDone ? 'w-full xl:w-[450px] xl:mt-10' : 'w-full max-w-xl'}
             ${activeSheetStem ? 'blur-md opacity-20 pointer-events-none' : ''}`}
           >
             <SeparatorPanel
@@ -105,7 +105,7 @@ export default function Lab() {
       </main>
 
       {/* Bottom Bar */}
-      <footer className="w-full p-4 border-t border-white/5 bg-black/50 backdrop-blur-md flex justify-between font-mono text-[9px] text-gray-500 z-50">
+      <footer className="w-full px-3 py-3 sm:p-4 border-t border-white/5 bg-black/50 backdrop-blur-md flex justify-between gap-3 font-mono text-[8px] sm:text-[9px] text-gray-500 z-50">
         <div>STATUS: {engineState.toUpperCase()}</div>
         <div>MEM_ALLOC: 4.2GB</div>
       </footer>
@@ -115,7 +115,7 @@ export default function Lab() {
         isOpen={activeSheetStem !== null}
         onClose={() => setActiveSheetStem(null)}
         stemName={activeSheetStem}
-        midiData={activeSheetStem ? midiData[activeSheetStem] : null}
+        midiData={activeSheetStem ? midiData?.[activeSheetStem] : null}
       />
     </div>
   );

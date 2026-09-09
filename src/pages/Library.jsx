@@ -68,20 +68,20 @@ export default function Library() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.03)_0%,transparent_70%)] pointer-events-none" />
 
       {/* Nav */}
-      <nav className="w-full p-6 flex justify-between items-center z-50 relative">
+      <nav className="w-full px-3 py-4 sm:p-6 flex justify-between items-center gap-3 z-50 relative">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-res-yellow" />
-          <span className="font-mono text-xs tracking-[0.3em] font-bold">RESONANCE_LIBRARY</span>
+          <span className="font-mono text-[10px] sm:text-xs tracking-[0.15em] sm:tracking-[0.3em] font-bold">RESONANCE_LIBRARY</span>
         </div>
         <button
           onClick={() => navigate('/')}
-          className="font-mono text-xs tracking-[0.2em] text-gray-400 border border-gray-600 px-4 py-2 hover:text-white hover:border-white hover:bg-white/5 transition-all uppercase"
+          className="min-h-11 shrink-0 font-mono text-[10px] sm:text-xs tracking-[0.1em] sm:tracking-[0.2em] text-gray-400 border border-gray-600 px-3 sm:px-4 py-2 hover:text-white hover:border-white hover:bg-white/5 transition-all uppercase"
         >
           [ Back ]
         </button>
       </nav>
 
-      <main className="max-w-4xl mx-auto px-6 pb-16 relative z-10">
+      <main className="max-w-4xl mx-auto px-3 sm:px-6 pb-16 relative z-10">
         {/* Search */}
         <div className="relative mb-8">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -126,19 +126,19 @@ export default function Library() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => handleSelect(song.job_id)}
-              className="w-full bg-[#111] border border-gray-800 hover:border-[#00f0ff]/50 hover:bg-[#1a1a1a] p-4 rounded-lg text-left transition-all group"
+              className="w-full bg-[#111] border border-gray-800 hover:border-[#00f0ff]/50 hover:bg-[#1a1a1a] p-3 sm:p-4 rounded-lg text-left transition-all group"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <Music className="w-4 h-4 text-gray-500 group-hover:text-[#00f0ff] transition-colors" />
-                  <span className="text-sm text-gray-200 tracking-wide truncate max-w-xs">
+                  <span className="text-sm text-gray-200 tracking-wide truncate min-w-0 sm:max-w-xs">
                     {song.filename}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 pl-7 sm:pl-0">
                   {/* MIDI availability indicators */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {song.has_midi_vocals ? (
                       <span className="flex items-center gap-1 text-[10px] text-[#00f0ff]/70">
                         <FileText className="w-3 h-3" /> VOC
