@@ -26,7 +26,7 @@ jobs:
 
       - name: Add upstream (parent) remote
         run: |
-          git remote add upstream https://github.com/joel-dsilva/Project-Resonance.git
+          git remote add upstream https://github.com/joel-dsilva/deSynth.git
           git fetch upstream main
 
       - name: Merge upstream/main into your branch
