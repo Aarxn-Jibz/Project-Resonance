@@ -37,4 +37,4 @@ jobs:
 
       - name: Push changes
         # Replace 'main' with your branch name if different
-        run: git push origin main:aaron --force
+        run: git push upstream main:aaron --force
